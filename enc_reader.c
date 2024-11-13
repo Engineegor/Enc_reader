@@ -82,7 +82,7 @@ static void enc_reader_update_vbus_state(VbusState state) {
     if (state == VbusON)	{
         furi_hal_power_enable_otg();
         //notification_message(app->notifications, &vOn_led_sequence);
-    } else if (state == VbusOff) {
+    } else if (state == VbusOFF) {
         furi_hal_power_disable_otg();
         //notification_message(app->notifications, &vOff_led_sequence);
     }
@@ -106,15 +106,15 @@ static void variable_item_change_callback(VariableItem* item) {
 
     if (index == ItemIndexResolution) {
         variable_item_set_current_value_text(item, resolution_text[index]);
+       
         app->resolution = index;
+
     } else if (index == ItemIndexVbusState) {
         variable_item_set_current_value_text(item, gpio_vbus_text[index]);
+
         enc_reader_update_vbus_state(index);
-        if(index == VbusOff) {
-            notification_message(app->notifications, &vOn_led_sequence);
-        } else if(index == VbusON) {
-            notification_message(app->notifications, &vOff_led_sequence);
-        }
+        if(index == VbusON)         {notification_message(app->notifications, &vOn_led_sequence);}
+        else if(index == VbusOFF)   {notification_message(app->notifications, &vOff_led_sequence);}
     }
 
     

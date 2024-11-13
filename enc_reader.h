@@ -77,7 +77,7 @@ const char* const resolution_text[ResolutionMAX] = {
 
 typedef enum {
     VbusON,
-    VbusOff,
+    VbusOFF,
     VbusStatesNum,
 } VbusState;
 
@@ -88,8 +88,8 @@ const char* const gpio_vbus_text[VbusStatesNum] = {
 
 typedef struct EncApp{
     Gui* gui;
-    ViewPort* view_port;
-	FuriMessageQueue* event_queue;
+    //ViewPort* view_port;
+	//FuriMessageQueue* event_queue;
 	NotificationApp* notifications;
 	ViewDispatcher* view_dispatcher;
 
