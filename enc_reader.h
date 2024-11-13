@@ -5,7 +5,7 @@
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/widget.h>
-#include <gui/modules/submenu.h>
+#include <gui/modules/variable_item_list.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -47,12 +47,11 @@ typedef enum {
 
 // Enumeration of submenu items.
 typedef enum {
-    SubmenuIndexStart,
-	SubmenuIndexResolution,
-//	SubmenuIndexShowRaw,
-    SubmenuIndexVbusState,
-	SubmenuIndexMAX,
-} SubmenuIndex;
+    ItemIndexStart,
+	ItemIndexResolution,
+    ItemIndexVbusState,
+	ItemIndexMAX,
+} ItemIndex;
 
 typedef enum {
 	ResolutionRaw,
@@ -69,14 +68,35 @@ const int32_t pos_divider[] = {
 	200
 };
 
+const char* const resolution_text[ResolutionMAX] = {
+    "Raw",
+    "50",
+	"100",
+	"200",
+};
+
+typedef enum {
+    VbusON,
+    VbusOff,
+    VbusStatesNum,
+} VbusState;
+
+const char* const gpio_vbus_text[VbusStatesNum] = {
+    "OFF",
+    "ON",
+};
+
 typedef struct EncApp{
     Gui* gui;
     ViewPort* view_port;
 	FuriMessageQueue* event_queue;
 	NotificationApp* notifications;
 	ViewDispatcher* view_dispatcher;
+
+	View* main_view;
     Widget* widget;
-    Submenu* submenu;
+	
+	VariableItemList* var_item_list;
 
 	struct {
 		const GpioPin*	a;
@@ -89,7 +109,8 @@ typedef struct EncApp{
 		int32_t rel;
 	} coordinates;
 
-	bool Vbus_state;
+	VbusState 		Vbus_state;
 	ResolutionIndex resolution;
+	ViewIndex		current_view;
 
 } EncApp;
