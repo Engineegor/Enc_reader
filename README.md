@@ -1,16 +1,27 @@
-## Enc reader
+# Enc reader
 
 This is a simple app for flipper that can read incremental quadrature encoders that show absolute and relative coordinate.
 
-### Pinouts
+## Pinouts
 
 - 5V - supply
 - A4 - enc A
 - A7 - enc B
 
+## Configutarion menu
+
+- Start: run reader
+- Resolution: set coordinate showing option (raw pulses or mm)
+- 5V supply: set the 5V output state
+
+## Main screen
+
+Shows configuration at top and two position values (absolute and relative).
+
+5V output enabled only in this mode.
+
 ### Controls
 
-- Short press OK: set origin at current coordinate
-- Short press UP: turn on and off the 5V bus
-- Short press DOWN: zeroing all coordinates
-- Long press BACK: close app
+- Left/Back: return to configuration menu
+- Ok: set current position as origin
+- Right: set all coordinates to 0
