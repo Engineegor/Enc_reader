@@ -6,6 +6,7 @@
 #include <furi_hal_power.h>
 
 #include <gui/gui.h>
+#include <gui/elements.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/widget.h>
 
@@ -13,6 +14,7 @@
 
 #include <notification/notification.h>
 
+static void app_change_view(EncApp* app, ViewIndex index);
 
 /*******************************************************************
  *                   INPUT / OUTPUT FUNCTIONS 
@@ -37,51 +39,41 @@ static void enc_reader_setup_gpio_inputs(EncApp* app) {
 }
 
 static void enc_reader_update_vbus_state(VbusState state) {
+
     if (state == VbusON)	{
         furi_hal_power_enable_otg();
-        //notification_message(app->notifications, &vOn_led_sequence);
     } else if (state == VbusOFF) {
         furi_hal_power_disable_otg();
-        //notification_message(app->notifications, &vOff_led_sequence);
     }
 }
 
 /*******************************************************************
  *                   SETTINGS VIEW 
  *******************************************************************/
-
-static const resolution_t get_resolution(ResolutionIndex index) {
-    if (index < ResolutionMAX) return resolution_list[index];
-    return resolution_list[ResolutionRaw];
-}
-
 static void variable_item_enter_callback(void* context, uint32_t index) {
     furi_assert(context);
     EncApp* app = context;
     if (index == ItemIndexStart) {
-        app->current_view = ViewIndexMain;
-        view_dispatcher_send_custom_event(app->view_dispatcher, ViewIndexMain);
+        //if(index == VbusON)         {notification_message(app->notifications, &vOn_led_sequence);}
+        //else if(index == VbusOFF)   {notification_message(app->notifications, &vOff_led_sequence);}
+        app_change_view(app, ViewIndexMain);
     }
 }
 
 static void variable_item_change_callback(VariableItem* item) {
-    EncApp* app = variable_item_get_context(item);
-    uint8_t index = variable_item_get_current_value_index(item);
+    EncApp* app     = variable_item_get_context(item);
+    uint8_t index   = variable_item_get_current_value_index(item);
 
-    //FURI_LOG_D();
-
-    if (index == ItemIndexResolution) {
+    if (item == app->var_item[ItemIndexResolution]) {
         variable_item_set_current_value_text(item, resolution_list[index].text);
        
         app->resolution = index;
 
-    } else if (index == ItemIndexVbusState) {
+    } else if (item == app->var_item[ItemIndexVbusState]) {
 
-        variable_item_set_current_value_text(item, vbus_state_list[index].text);
-
-        enc_reader_update_vbus_state(index);
-        if(index == VbusON)         {notification_message(app->notifications, &vOn_led_sequence);}
-        else if(index == VbusOFF)   {notification_message(app->notifications, &vOff_led_sequence);}
+        variable_item_set_current_value_text(item, vbus_state_list[index]);
+        app->Vbus_state = index;
+        //enc_reader_update_vbus_state(index);
     }
 
     
@@ -93,15 +85,12 @@ static void app_view_settings_alloc(EncApp* app) {
 
     variable_item_list_set_enter_callback(app->var_item_list, variable_item_enter_callback, app);
 
-    variable_item_list_add(app->var_item_list, "Start",         0,             NULL,                            NULL);
-    variable_item_list_add(app->var_item_list, "Resolution",    ResolutionMAX, variable_item_change_callback,   app);
-    variable_item_list_add(app->var_item_list, "5V supply",     VbusStatesNum, variable_item_change_callback,   app);
+    app->var_item[ItemIndexStart]       = variable_item_list_add(app->var_item_list, "Start",         0,             NULL,                            NULL);
+    app->var_item[ItemIndexResolution]  = variable_item_list_add(app->var_item_list, "Resolution",    ResolutionMAX, variable_item_change_callback,   app);
+    app->var_item[ItemIndexVbusState]   = variable_item_list_add(app->var_item_list, "5V supply",     VbusStatesNum, variable_item_change_callback,   app);
 
-    /*variable_item_set_current_value_index(item_res, app->resolution);
-    variable_item_set_current_value_index(item_sup, app->Vbus_state);
-
-    variable_item_set_current_value_text(item_res, resolution_text[variable_item_get_current_value_index(item_res)]);
-    variable_item_set_current_value_text(item_sup, gpio_vbus_text[variable_item_get_current_value_index(item_sup)]);*/
+    variable_item_set_current_value_text(app->var_item[ItemIndexResolution],    resolution_list[app->resolution].text);
+    variable_item_set_current_value_text(app->var_item[ItemIndexVbusState],     vbus_state_list[app->Vbus_state]);
 }
 
 static void app_view_settings_free(EncApp* app) {
@@ -118,9 +107,7 @@ static void enc_reader_app_button_callback(GuiButtonType button_type, InputType 
     // Only request the view switch if the user short-presses the Center button.
     if (input_type == InputTypeShort) {
         if (button_type == GuiButtonTypeLeft) {
-            enc_reader_update_vbus_state(false);
-            app->current_view = ViewIndexSettings;
-            view_dispatcher_send_custom_event(app->view_dispatcher, ViewIndexSettings);
+            app_change_view(app, ViewIndexSettings);
         } else if (button_type == GuiButtonTypeCenter) {
             app->coordinates.org = app->coordinates.abs;
             notification_message(app->notifications, &button_led_sequence);
@@ -133,25 +120,7 @@ static void enc_reader_app_button_callback(GuiButtonType button_type, InputType 
 }
 
 static void app_view_main_alloc(EncApp* app) {
-    app->widget = widget_alloc();
-
-    static const uint8_t offset_vertical	= 2;
-    static const uint8_t offset_horizontal	= 2;
-    static const uint8_t offset_bottom      = 14;
-    static const uint8_t gap  		        = 16;
-    static const uint8_t gap_horizontal     = 26;
-
-    widget_add_frame_element(app->widget, 0, 0, 128, 64 - offset_bottom, 2);
-
-    widget_add_string_element(app->widget, offset_horizontal, offset_vertical + gap,        AlignLeft, AlignTop, FontSecondary, "Abs:");
-    widget_add_string_element(app->widget, offset_horizontal, offset_vertical + gap * 2,    AlignLeft, AlignTop, FontSecondary, "Rel:");
-
-    widget_add_string_element(app->widget, offset_horizontal + gap_horizontal, offset_vertical + gap,        AlignLeft, AlignTop, FontBigNumbers, "00000000");
-    widget_add_string_element(app->widget, offset_horizontal + gap_horizontal, offset_vertical + gap * 2,    AlignLeft, AlignTop, FontBigNumbers, "00000000");
-
-    widget_add_button_element(app->widget, GuiButtonTypeLeft,   "Config",   enc_reader_app_button_callback, app);
-    widget_add_button_element(app->widget, GuiButtonTypeCenter, "Org",      enc_reader_app_button_callback, app);
-    widget_add_button_element(app->widget, GuiButtonTypeRight,  "Set 0",    enc_reader_app_button_callback, app);
+    app->widget     = widget_alloc();
 }
 
 static void app_view_main_free(EncApp* app) {
@@ -162,33 +131,67 @@ static void app_view_main_free(EncApp* app) {
 /*******************************************************************
  *                   VIEW DISPATCHER FUNCTIONS 
  *******************************************************************/
+static void app_change_view(EncApp* app, ViewIndex index) {
+    if (index < ViewIndexMAX) {
+        app->current_view = index;
+        enc_reader_update_vbus_state(index == ViewIndexMain ? app->Vbus_state : VbusOFF);
+        view_dispatcher_switch_to_view(app->view_dispatcher, index);
+    }
+}
+
 static void enc_reader_app_tick_event_callback(void* context) {
     furi_assert(context);
     EncApp* app = context;
 
     if (app->current_view == ViewIndexMain) {
 
+        static const uint8_t screen_width       = 128;
+        static const uint8_t offset_vertical    = 2;
+        static const uint8_t offset_horizontal  = 2;
+        static const uint8_t offset_bottom      = 14;
+        static const uint8_t gap  		        = 16;
+
+        app->coordinates.rel = app->coordinates.abs - app->coordinates.org;
+
+        char string_abs[] = "00000000 ";
+        char string_rel[] = "00000000 ";
+
+        int32_t asb_pos = app->coordinates.abs / resolution_list[app->resolution].divider;
+        int32_t rel_pos = app->coordinates.rel / resolution_list[app->resolution].divider;
+
+        snprintf(string_abs, strlen(string_abs), "%8d", (int)asb_pos);
+        snprintf(string_rel, strlen(string_rel), "%8d", (int)rel_pos);
+
+        widget_reset(app->widget);
+
+        widget_add_frame_element(app->widget, 0, 0, screen_width, 64 - offset_bottom, 2);
+
+        widget_add_string_element(app->widget, offset_horizontal,                   offset_vertical,            AlignLeft,  AlignTop, FontSecondary, app->Vbus_state == VbusON ? "5V ON " : "5V OFF");
+        widget_add_string_element(app->widget, screen_width - offset_horizontal,    offset_vertical,            AlignRight, AlignTop, FontSecondary, resolution_list[app->resolution].text);
+
+        widget_add_string_element(app->widget, offset_horizontal,                   offset_vertical + gap,      AlignLeft,  AlignTop, FontPrimary,   "Abs:");
+        widget_add_string_element(app->widget, offset_horizontal,                   offset_vertical + gap * 2,  AlignLeft,  AlignTop, FontPrimary,   "Rel:");
+
+        widget_add_string_element(app->widget, screen_width - offset_horizontal,    offset_vertical + gap,      AlignRight, AlignTop, FontBigNumbers, string_abs);
+        widget_add_string_element(app->widget, screen_width - offset_horizontal,    offset_vertical + gap * 2,  AlignRight, AlignTop, FontBigNumbers, string_rel);
+
+        widget_add_button_element(app->widget, GuiButtonTypeLeft,   "Config",   enc_reader_app_button_callback, app);
+        widget_add_button_element(app->widget, GuiButtonTypeCenter, "Org",      enc_reader_app_button_callback, app);
+        widget_add_button_element(app->widget, GuiButtonTypeRight,  "Reset",    enc_reader_app_button_callback, app);
+
     }
 
-}
-
-static bool enc_reader_app_custom_event_callback(void* context, uint32_t event) {
-    furi_assert(context);
-    EncApp* app = context;
-    // The event numerical value can mean different things (the application is responsible to uphold its chosen convention)
-    // In this example, the only possible meaning is the view index to switch to.
-    furi_assert(event < ViewIndexMAX);
-    // Switch to the requested view.
-    view_dispatcher_switch_to_view(app->view_dispatcher, event);
-
-    return true;
 }
 
 static bool enc_reader_app_navigation_callback(void* context) { // This function is called when the user has pressed the Back key.
     furi_assert(context);
     EncApp* app = context;
-    // Back means exit the application, which can be done by stopping the ViewDispatcher.
-    view_dispatcher_stop(app->view_dispatcher);
+
+    if (app->current_view == ViewIndexMain) {
+        app_change_view(app, ViewIndexSettings);
+    } else {
+        view_dispatcher_stop(app->view_dispatcher);
+    }
     return true;
 }
 
@@ -201,7 +204,6 @@ static void app_view_dispatcher_alloc(EncApp* app) {
     view_dispatcher_add_view(app->view_dispatcher,  ViewIndexSettings,  variable_item_list_get_view(app->var_item_list));
 
     view_dispatcher_set_tick_event_callback(app->view_dispatcher,       enc_reader_app_tick_event_callback, 40);
-    view_dispatcher_set_custom_event_callback(app->view_dispatcher,     enc_reader_app_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, enc_reader_app_navigation_callback);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 }
@@ -258,10 +260,13 @@ void enc_reader_app_free(EncApp* app) {
 static void enc_reader_app_run(EncApp* app) {
 
     app->resolution     = ResolutionRaw;
-    app->Vbus_state     = VbusON;
-    app->current_view   = ViewIndexSettings;
+    app->Vbus_state     = VbusOFF;
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, ViewIndexSettings);
+    app_change_view(app, ViewIndexSettings);
+    
+    variable_item_set_current_value_index(app->var_item[ItemIndexResolution],   app->resolution);
+    variable_item_set_current_value_index(app->var_item[ItemIndexVbusState],    app->Vbus_state);
+    
     view_dispatcher_run(app->view_dispatcher);
 }
 

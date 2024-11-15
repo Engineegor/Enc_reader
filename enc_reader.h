@@ -70,31 +70,44 @@ typedef struct {
 
 const resolution_t resolution_list[] = {
     {1,		"Raw"},
-    {50,	"50"},
-    {100,	"100"},
-    {200,	"200"},
+    {50,	"50pul"},
+    {100,	"100pul"},
+    {200,	"200pul"},
 };
 
 typedef enum {
-    VbusON,
     VbusOFF,
+    VbusON,
     VbusStatesNum,
 } VbusState;
 
 const char* const vbus_state_list[] = {
-    {"ON"},
-    {"OFF"},
+    "OFF",
+    "ON",
 };
+
+typedef enum {
+    IndexWidgetAbs,
+    IndexWidgetRel,
+    IndexWidgetMAX,
+} WidgetIndex;
+
+typedef void (*MainViewOkCallback)(InputType type, void* context);
+
 
 typedef struct EncApp{
     Gui* gui;
     NotificationApp* notifications;
+
     ViewDispatcher* view_dispatcher;
 
-    View* main_view;
+    //View* main_view;
+
     Widget* widget;
+    WidgetElement* widget_element[IndexWidgetMAX];
     
     VariableItemList* var_item_list;
+    VariableItem* var_item[ItemIndexMAX];
 
     struct {
         const GpioPin*	a;

@@ -10,6 +10,7 @@ App(
     ],
     stack_size=1 * 1024,
     order=90,
-    fap_icon="enc_reader_logo_10px.png",
+    fap_icon_assets="images",
+    fap_icon="images/enc_reader_logo_10px.png",
     fap_category="GPIO",
 )
