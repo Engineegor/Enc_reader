@@ -101,7 +101,7 @@ static void app_view_settings_free(EncApp* app) {
 /*******************************************************************
  *                   MAIN VIEW 
  *******************************************************************/
-static void enc_reader_app_button_callback(GuiButtonType button_type, InputType input_type, void* context) {
+static void app_view_main_button_callback(GuiButtonType button_type, InputType input_type, void* context) {
     furi_assert(context);
     EncApp* app = context;
     // Only request the view switch if the user short-presses the Center button.
@@ -119,30 +119,7 @@ static void enc_reader_app_button_callback(GuiButtonType button_type, InputType 
     }
 }
 
-static void app_view_main_alloc(EncApp* app) {
-    app->widget     = widget_alloc();
-}
-
-static void app_view_main_free(EncApp* app) {
-    furi_assert(app);
-    widget_free(app->widget);
-}
-
-/*******************************************************************
- *                   VIEW DISPATCHER FUNCTIONS 
- *******************************************************************/
-static void app_change_view(EncApp* app, ViewIndex index) {
-    if (index < ViewIndexMAX) {
-        app->current_view = index;
-        enc_reader_update_vbus_state(index == ViewIndexMain ? app->Vbus_state : VbusOFF);
-        view_dispatcher_switch_to_view(app->view_dispatcher, index);
-    }
-}
-
-static void enc_reader_app_tick_event_callback(void* context) {
-    furi_assert(context);
-    EncApp* app = context;
-
+static void app_view_main_redraw_callback(EncApp* app) {
     if (app->current_view == ViewIndexMain) {
 
         static const uint8_t screen_width       = 128;
@@ -175,12 +152,37 @@ static void enc_reader_app_tick_event_callback(void* context) {
         widget_add_string_element(app->widget, screen_width - offset_horizontal,    offset_vertical + gap,      AlignRight, AlignTop, FontBigNumbers, string_abs);
         widget_add_string_element(app->widget, screen_width - offset_horizontal,    offset_vertical + gap * 2,  AlignRight, AlignTop, FontBigNumbers, string_rel);
 
-        widget_add_button_element(app->widget, GuiButtonTypeLeft,   "Config",   enc_reader_app_button_callback, app);
-        widget_add_button_element(app->widget, GuiButtonTypeCenter, "Org",      enc_reader_app_button_callback, app);
-        widget_add_button_element(app->widget, GuiButtonTypeRight,  "Reset",    enc_reader_app_button_callback, app);
+        widget_add_button_element(app->widget, GuiButtonTypeLeft,   "Config",   app_view_main_button_callback, app);
+        widget_add_button_element(app->widget, GuiButtonTypeCenter, "Org",      app_view_main_button_callback, app);
+        widget_add_button_element(app->widget, GuiButtonTypeRight,  "Reset",    app_view_main_button_callback, app);
 
     }
+}
 
+static void app_view_main_alloc(EncApp* app) {
+    app->widget     = widget_alloc();
+}
+
+static void app_view_main_free(EncApp* app) {
+    furi_assert(app);
+    widget_free(app->widget);
+}
+
+/*******************************************************************
+ *                   VIEW DISPATCHER FUNCTIONS 
+ *******************************************************************/
+static void app_change_view(EncApp* app, ViewIndex index) {
+    if (index < ViewIndexMAX) {
+        app->current_view = index;
+        enc_reader_update_vbus_state(index == ViewIndexMain ? app->Vbus_state : VbusOFF);
+        view_dispatcher_switch_to_view(app->view_dispatcher, index);
+    }
+}
+
+static void enc_reader_app_tick_event_callback(void* context) {
+    furi_assert(context);
+    EncApp* app = context;
+    app_view_main_redraw_callback(app);
 }
 
 static bool enc_reader_app_navigation_callback(void* context) { // This function is called when the user has pressed the Back key.

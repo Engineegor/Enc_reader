@@ -20,25 +20,6 @@ const NotificationSequence button_led_sequence = {
     &message_blue_0,
     NULL,
 };
-const NotificationSequence vOn_led_sequence = {
-    &message_green_255,
-    &message_vibro_on,
-    &message_delay_25,
-    &message_vibro_off,
-    &message_delay_100,
-    &message_vibro_on,
-    &message_delay_25,
-    &message_vibro_off,
-    NULL,
-};
-const NotificationSequence vOff_led_sequence = {
-    &message_red_255,
-    &message_vibro_on,
-    &message_delay_100,
-    &message_delay_50,
-    &message_vibro_off,
-    NULL,
-};
 
 // Enumeration of the view indexes.
 typedef enum {
@@ -65,7 +46,7 @@ typedef enum {
 
 typedef struct {
     int32_t			divider;
-    char*			text;
+    const char*			text;
 } resolution_t;
 
 const resolution_t resolution_list[] = {
@@ -92,16 +73,11 @@ typedef enum {
     IndexWidgetMAX,
 } WidgetIndex;
 
-typedef void (*MainViewOkCallback)(InputType type, void* context);
-
-
 typedef struct EncApp{
     Gui* gui;
     NotificationApp* notifications;
 
     ViewDispatcher* view_dispatcher;
-
-    //View* main_view;
 
     Widget* widget;
     WidgetElement* widget_element[IndexWidgetMAX];
